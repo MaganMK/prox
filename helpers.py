@@ -80,3 +80,15 @@ def setup_loggers(opts):
     res_logger.setLevel(logging.INFO)
     
     return run_logger, res_logger
+    
+    
+def build_csv(opts, train_loss, valid_loss, train_acc, valid_acc):
+    path = opts.res_csv
+    f = open(path, 'a')
+    f.write(f"{train_loss},{valid_loss},{train_acc},{valid_acc}")
+    f.close()
+    
+    
+    
+    
+    

@@ -1,11 +1,12 @@
 import multiprocessing, sys, json, logging, gc, os, argparse
-from progressbar import ProgressBar
 from datetime import datetime
 import torch
 from torch.utils.data import DataLoader, Dataset
-from helpers import ProofStepData, merge, setup_loggers
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+sys.path.append(os.path.abspath('../'))
+#sys.path.append(os.path.abspath('./'))
+from helpers import ProofStepData, merge, setup_loggers, build_csv
 from ffn.ffn_prover import FFNProver
 from gast.gast_prover import GASTProver
 from transtactic.trans_prover import TransProver
@@ -35,7 +36,7 @@ def train(opts):
 
     if opts.prover == "gast":
         model = GASTProver(opts)
-    elif opts.prover == "fnn":
+    elif opts.prover == "ffn":
         model = FFNProver(opts)
     elif opts.prover == "trans":
         model = TransProver(opts)
@@ -45,7 +46,7 @@ def train(opts):
     
     if opts.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr, weight_decay=opts.l2)
-    if opts.optimizer == "plateau":
+    if opts.scheduler == "plateau":
         scheduler = ReduceLROnPlateau(optimizer, patience=opts.lr_reduce_patience, verbose=True)
 
 
@@ -79,13 +80,6 @@ def train(opts):
         loss_avg_train /= len(train)
         acc_train = num_correct_train/121644
         
-        # save model
-        torch.save({"state_dict": model.state_dict(), 
-                    "n_epoch": n, 
-                    "optimizer": optimizer.state_dict()},
-                    f"{opts.savepath}%03d.pth" % n)
-  
-    
         # validation
         run_logger.info("validation...")
         model.eval()
@@ -116,7 +110,9 @@ def train(opts):
         res_logger.info(f"train accuracy: {acc_train}")
         res_logger.info(f"validation accuracy: {acc_valid}")
         res_logger.info("###################")
-    
+        build_csv(opts, loss_avg_train, loss_avg_valid, acc_train, acc_valid)
+        
+        
         scheduler.step(loss_avg_valid)
         
 
@@ -128,10 +124,11 @@ def sanity_check(opts):
 
     if opts.prover == "gast":
         model = GASTProver(opts)
-    elif opts.prover == "fnn":
+    elif opts.prover == "ffn":
         model = FFNProver(opts)
     elif opts.prover == "trans":
         model = TransProver(opts)
+    
     model.to(opts.device)
 
     if opts.optimizer == "adam":
@@ -180,24 +177,24 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description="train gast models")
     
     # paths
-    arg_parser.add_argument("--datapath", type=str, default="./")
+    arg_parser.add_argument("--datapath", type=str, default="../data/")
     arg_parser.add_argument("--jsonpath", type=str, default="./jsons")
-    arg_parser.add_argument("--savepath", type=str, default="./model")
-    arg_parser.add_argument("--run_log", type=str, default="run.log")
-    arg_parser.add_argument("--res_log", type=str, default="res.log")
+    arg_parser.add_argument("--run_log", type=str, default="./logs/run.log")
+    arg_parser.add_argument("--res_log", type=str, default="./logs/res.log")
+    arg_parser.add_argument("--res_csv", type=str, default="./logs/res.csv")
     arg_parser.add_argument("--sanity", type=bool, default=False)
     arg_parser.add_argument("--sanity_batches", type=int, default=4)
     arg_parser.add_argument("--prover", type=str, default="gast")
     
     # general/optimization
     arg_parser.add_argument("--num_workers", type=int, default=2)
-    arg_parser.add_argument("--epochs", type=int, default=16)
+    arg_parser.add_argument("--epochs", type=int, default=100)
     arg_parser.add_argument("--batchsize", type=int, default=16)
     arg_parser.add_argument("--embedding_info", type=str, default="goal")
     arg_parser.add_argument("--optimizer", type=str, default="adam")
-    arg_parser.add_argument("--scheduler", type=str, defalt="plateau")
+    arg_parser.add_argument("--scheduler", type=str, default="plateau")
     
-    arg_parser.add_argument("--dropout", type=float, default=0.4)
+    arg_parser.add_argument("--dropout", type=float, default=0.1)
     arg_parser.add_argument("--lr", type=float, default=0.001)
     arg_parser.add_argument("--l2", type=float, default=0.000001)
     arg_parser.add_argument("--lr_reduce_patience", type=float, default=3)
@@ -222,7 +219,7 @@ if __name__ == '__main__':
     opts = arg_parser.parse_args()
     opts.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    if opst.sanity:
+    if opts.sanity:
         sanity_check(opts)
     else:
         train(opts)

@@ -1,0 +1,18 @@
+2021-03-24 15:35:03,757:	opts -> Namespace(batchsize=16, datapath='../data/', device=device(type='cpu'), dropout=0.1, embedder='sageconv', embedding_dim=256, embedding_info='goal', epochs=16, hops=1, jsonpath='./jsons', l2=1e-06, lr=0.001, lr_reduce_patience=3, node_pooling='none', norm='none', num_attention=12, num_hidden=12, num_message_layers=1, num_workers=2, optimizer='adam', pooling='mean', predictor='linear', prover='ffn', res_csv='./logs/res.csv', res_log='./logs/res.log', run_log='./logs/run.log', sanity=False, sanity_batches=4, scheduler='plateau', sexpression=False, tokenizer_length=256, vocab_size=30522)
+2021-03-24 15:35:04,146:	training size -> 7603
+2021-03-24 15:35:04,146:	valid size -> 4262
+2021-03-24 15:35:04,147:	FFNProver(
+  (ffn): Sequential(
+    (0): Linear(in_features=55, out_features=55, bias=True)
+    (1): ReLU()
+    (2): Dropout(p=0.1, inplace=False)
+    (3): Linear(in_features=55, out_features=55, bias=True)
+    (4): ReLU()
+    (5): Dropout(p=0.1, inplace=False)
+    (6): Linear(in_features=55, out_features=4, bias=True)
+    (7): ReLU()
+    (8): Dropout(p=0.1, inplace=False)
+  )
+  (softmax): Softmax(dim=1)
+)
+2021-03-24 15:35:04,147:	epoch: 0

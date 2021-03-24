@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 import torch.nn.functional as F
 from helpers import ProofStepData, merge, traverse_postorder, get_node_count_ast
-from sage import SAGEEMbedder
+from .sage import SAGEEmbedder
 import json
 
 class GASTProver(nn.Module):
