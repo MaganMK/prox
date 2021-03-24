@@ -210,10 +210,13 @@ if __name__ == '__main__':
     
     # transtactic
     arg_parser.add_argument("--sexpression", type=bool, default=False)
-    arg_parser.add_argument("--tokenizer_length", type=int, default=256)
-    arg_parser.add_argument("--num_hidden", type=int, default=12)
-    arg_parser.add_argument("--num_attention", type=int, default=12)
+    arg_parser.add_argument("--tokenizer_length", type=int, default=512)
+    arg_parser.add_argument("--num_hidden", type=int, default=6)
+    arg_parser.add_argument("--num_attention", type=int, default=6)
     arg_parser.add_argument("--vocab_size", type=int, default=30522)
+    arg_parser.add_argument("--architecture", type=str, default="bert")
+    arg_parser.add_argument("--pre_trained_arch", type=bool, default=False)
+    arg_parser.add_argument("--pre_trained_tokenizer", type=bool, default=True)
     
     opts = arg_parser.parse_args()
     opts.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
