@@ -17,13 +17,13 @@ def train(opts):
     run_logger, res_logger = setup_loggers(opts)
     
     if str(opts.device) == "cpu":
-        run_logger.info(f"using CPU with {multiprocessing.cpu_count()} cores")
-        run_logger.info(f"torch uses {torch.get_num_threads()} theards")
-        run_logger.info(f"max recurssion is {sys.getrecursionlimit()}")
+        res_logger.info(f"using CPU with {multiprocessing.cpu_count()} cores")
+        res_logger.info(f"torch uses {torch.get_num_threads()} theards")
+        res_logger.info(f"max recurssion is {sys.getrecursionlimit()}")
     else:
-        run_logger.info("Using GPU")
-        run_logger.info(f"torch uses {torch.get_num_threads()} theards")
-        run_logger.info(f"max recurssion is {sys.getrecursionlimit()}")
+        res_logger.info("Using GPU")
+        res_logger.info(f"torch uses {torch.get_num_threads()} theards")
+        res_logger.info(f"max recurssion is {sys.getrecursionlimit()}")
 
     res_logger.info(f"opts -> {opts}")
     
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     arg_parser.add_argument("--prover", type=str, default="gast")
     
     # general/optimization
-    arg_parser.add_argument("--num_workers", type=int, default=2)
+    arg_parser.add_argument("--num_workers", type=int, default=4)
     arg_parser.add_argument("--epochs", type=int, default=100)
     arg_parser.add_argument("--batchsize", type=int, default=16)
     arg_parser.add_argument("--embedding_info", type=str, default="goal")
