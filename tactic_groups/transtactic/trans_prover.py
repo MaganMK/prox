@@ -35,7 +35,7 @@ class TransProver(nn.Module):
         logits, loss = self.model(goal_texts, labels)
     
         preds = self.softmax(logits)
-        print(preds)
+        #print(preds)
         return self.get_groups_preds(preds), groups_true, loss
 
     def get_groups(self, tactics):

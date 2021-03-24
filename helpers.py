@@ -85,7 +85,7 @@ def setup_loggers(opts):
 def build_csv(opts, train_loss, valid_loss, train_acc, valid_acc):
     path = opts.res_csv
     f = open(path, 'a')
-    f.write(f"{train_loss},{valid_loss},{train_acc},{valid_acc}")
+    f.write(f"{train_loss},{valid_loss},{train_acc},{valid_acc}\n")
     f.close()
     
     
