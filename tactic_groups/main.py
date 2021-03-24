@@ -193,7 +193,6 @@ if __name__ == '__main__':
     arg_parser.add_argument("--embedding_info", type=str, default="goal")
     arg_parser.add_argument("--optimizer", type=str, default="adam")
     arg_parser.add_argument("--scheduler", type=str, default="plateau")
-    
     arg_parser.add_argument("--dropout", type=float, default=0.1)
     arg_parser.add_argument("--lr", type=float, default=0.001)
     arg_parser.add_argument("--l2", type=float, default=0.000001)

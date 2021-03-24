@@ -8,51 +8,38 @@ from torch_geometric.nn import GCNConv, SGConv, TransformerConv, SAGEConv, GATCo
 from torch_geometric.nn.norm import GraphSizeNorm
 from helpers import traverse_postorder, get_node_count_ast
 
-# SAGEConv
-class SAGEEmbedder(torch.nn.Module):
+class SGEmbedder(torch.nn.Module):
     def __init__(self, opts, nonterminals):
-        super(SAGEEmbedder, self).__init__()
+        super(SGEmbedder, self).__init__()
         self.opts = opts
         self.nonterminals = nonterminals
         
         if self.opts.num_message_layers == 1:
-            self.conv = SAGEConv(len(self.nonterminals), self.opts.embedding_dim)
+            self.conv = SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops)
         elif self.opts.num_message_layers == 2:
             self.conv = nn.Sequential(
-                SAGEConv(len(self.nonterminals), self.opts.embedding_dim),
+                SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops),
                 nn.Dropout(self.opts.dropout),
                 nn.ReLU(),
-                SAGEConv(self.opts.embedding_dim, self.opts.embedding_dim)
+                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
             )
         elif self.opts.num_message_layers == 4:
             self.conv = nn.Sequential(
-                SAGEConv(len(self.nonterminals), self.opts.embedding_dim),
+                SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops),
                 nn.Dropout(self.opts.dropout),
                 nn.ReLU(),
-                SAGEConv(self.opts.embedding_dim, self.opts.embedding_dim),
-                nn.Dropout(self.opts.dropout),
-                nn.ReLU(),           
-                SAGEConv(self.opts.embedding_dim, self.opts.embedding_dim),     
+                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops),
                 nn.Dropout(self.opts.dropout),
                 nn.ReLU(),
-                SAGEConv(self.opts.embedding_dim, self.opts.embedding_dim)              
+                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops),
+                nn.Dropout(self.opts.dropout),
+                nn.ReLU(),                
+                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
             )
-            
-        if self.opts.hops > 1:
-            self.internal_conv = SAGEConv(self.opts.embedding_dim, self.opts.embedding_dim) 
-        
-        if self.opts.pooling == "set2set":
-            self.pooler = Set2Set(self.opts.embedding_dim, 2)
-            
-        if self.opts.node_pooling == "topk":
-            self.node_pooler = TopKPooling(self.opts.embedding_dim, ratio=0.5)
-            
-        if self.opts.norm == "gsn":
-            self.norm = GraphSizeNorm()
             
         self.dropout = nn.Dropout(self.opts.dropout)
         self.activation = nn.ReLU()
-                    
+
     def forward(self, asts):
         embeddings = []
         graph_list = []
@@ -69,41 +56,26 @@ class SAGEEmbedder(torch.nn.Module):
             x = batch.x
             edge_index = batch.edge_index
 
-            # node embeddings
+            # node embeddings 
             try:
                 x = self.conv(x, edge_index)
                 x = self.activation(x)
                 x = self.dropout(x)
-                for i in range(1, self.opts.hops):
-                    x = self.internal_conv(x, edge_index)
-                    x = self.activation(x)
-                    x = self.dropout(x)
-                if self.opts.norm != "none":
-                    x = self.norm(x, batch.batch)
-            except Exception as e:
-                print(e)
+            except:
                 all_empty = []
                 for i, ast in enumerate(asts):
                     all_empty.append(torch.zeros(self.opts.embedding_dim).to(self.opts.device))
                 return torch.stack(all_empty)
             
-            if self.opts.node_pooling != "none":
-                res = self.node_pooler(x=x, edge_index=edge_index, batch=batch.batch)
-                x = res[0]
-                edge_index = res[1]
-                batch.batch = res[3]
-                            
-            if self.opts.pooling == "mean":
+            if self.opts.pooling == "mean": 
                 x = global_mean_pool(x, batch.batch)
             elif self.opts.pooling == "max":
                 x = global_max_pool(x, batch.batch)
             elif self.opts.pooling == "add":
                 x = global_add_pool(x, batch.batch)
-            elif self.opts.pooling == "set2set":
-                x = self.pooler(x, batch.batch)
-                x = self.activation(x)
             else:
                 return "ERROR NO POOL"
+                
             return x
 
         all_empty = []
@@ -111,8 +83,7 @@ class SAGEEmbedder(torch.nn.Module):
             all_empty.append(torch.zeros(self.opts.embedding_dim).to(self.opts.device))
 
         return torch.stack(all_empty)
-
-
+        
     def create_edge_index(self, ast):
         index_map = {}
         counter = [0]

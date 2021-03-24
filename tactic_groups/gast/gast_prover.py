@@ -4,6 +4,7 @@ from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 import torch.nn.functional as F
 from helpers import ProofStepData, merge, traverse_postorder, get_node_count_ast
 from .sage import SAGEEmbedder
+from .sg import SGEmbedder
 import json
 
 class GASTProver(nn.Module):
@@ -92,16 +93,19 @@ class GASTProver(nn.Module):
         elif self.opts.embedding_info == "goal+lc+gc":
             embeddings = torch.cat((goal_embeddings, lc_embeddings, gc_embeddings), 1)
         elif self.opts.embedding_info == "goal":
-            embeddings = goal_embeddings
-                
+            embeddings = goal_embeddings   
+        print(embeddings)
+        
         true_tactics = [tactic['text'] for tactic in batch['tactic']]
         true_groups = self.get_groups(true_tactics)
             
         logits = self.lin(embeddings)
         logits = self.dropout(logits)
+        print(logits)
         loss = self.compute_loss(logits, true_groups, len(true_tactics))
         
         preds = self.softmax(logits)
+        print(preds)
         pred_groups = self.get_groups_preds(preds)
         return pred_groups, true_groups, loss
 
