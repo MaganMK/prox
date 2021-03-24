@@ -51,7 +51,7 @@ class SAGEEmbedder(torch.nn.Module):
             self.norm = GraphSizeNorm()
             
         self.dropout = nn.Dropout(self.opts.dropout)
-        self.activation = nn.ReLU()
+        self.activation = nn.Tanh()
                     
     def forward(self, asts):
         embeddings = []
