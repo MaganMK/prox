@@ -1,0 +1,28 @@
+{
+	"none": "",
+	"local context": [
+		true,
+		false
+	],
+	"global context": [
+		true,
+		false
+	],
+	"with clause": [
+		"with"
+	],
+	"in clause": [
+		"in"
+	],
+	"using clause": [
+		"using"
+	],
+	"arrow clause": [
+		"->",
+		"<-"
+	],
+	"all occurrences": [
+		"*",
+		"|-"
+	]
+}

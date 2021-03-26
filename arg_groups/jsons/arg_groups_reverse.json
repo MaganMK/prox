@@ -1,0 +1,10 @@
+{
+	"with": "with clause",
+	"in": "in clause",
+	"using": "using clause",
+	"at": "at clause",
+	"->": "arrow clause",
+	"<-": "arrow clause",
+	"*": "all occurrences",
+	"|-": "all occurrences"
+}

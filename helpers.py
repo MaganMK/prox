@@ -89,6 +89,150 @@ def build_csv(opts, train_loss, valid_loss, train_acc, valid_acc):
     f.close()
     
     
+def check_args(json_path, step):
+    tactic_app = step["tactic"]["text"].split(" ")
+    tactic = tactic_app[0]
+    unprepped_args = tactic_app[1:]
+    args = []
+    for arg in unprepped_args:
+        if "," in arg:
+            arg = arg.split(",")
+            for a in arg:
+                if a != '':
+                     args.append(a)
+        else:
+            args.append(arg)  
+    gc = []
+    lc = []
+    for g in step["env"]:
+        qualid = g["qualid"]
+        gc.append(qualid)
+    for l in step["local_context"]:
+        lc.append(l["ident"])
+    
+    with open(f"{json_path}/arg_groups.json") as f:
+        arg_groups = json.load(f)
+    with open(f"{json_path}/arg_groups_reverse.json") as f:
+        arg_groups_reverse = json.load(f)
+    
+    res = {}
+    for k, v in arg_groups.items():
+        res[k] = 0
+    
+    for arg in args:
+        if arg in lc:
+            res["local context"] += 1
+        elif ("." in arg or "_" in arg) and arg != "f_equal":
+            res["global context"] += 1
+        elif arg in arg_groups_reverse.keys():
+            key = arg_groups_reverse[arg]
+            res[key] = 1
+        elif type(arg) == int:
+            res["int"] += 1
+        elif "," not in arg:
+            res["global context"] += 1
+        else:
+            print(tactic_app)
+            print(arg)
+            res["other"] += 1
+            
+    count = 0
+    for e in res.values():
+        if e == 0:
+            count += 1
+    if count == len(res):
+        res["none"] = 1
+    
+    return res
+    
+def check_args_batch(json_path, batch):
+    def check(jsonpath, tactic_app, gc, lc):
+        tactic_app = tactic_app["text"].split(" ")
+        tactic = tactic_app[0]
+        unprepped_args = tactic_app[1:]
+        args = []
+        for arg in unprepped_args:
+            if "," in arg:
+                arg = arg.split(",")
+                for a in arg:
+                    if a != '':
+                        args.append(a)
+            else:
+                args.append(arg)
+                
+        with open(f"{jsonpath}/arg_groups.json") as f:
+            arg_groups = json.load(f)
+        with open(f"{jsonpath}/arg_groups_reverse.json") as f:
+            arg_groups_reverse = json.load(f)
+    
+        res = {}
+        for k, v in arg_groups.items():
+            res[k] = 0
+    
+        for arg in args:
+            if arg in lc:
+                res["local context"] += 1
+            elif ("." in arg or "_" in arg) and arg != "f_equal":
+                res["global context"] += 1
+            elif arg in arg_groups_reverse.keys():
+                key = arg_groups_reverse[arg]
+                res[key] = 1
+            elif type(arg) == int:
+                res["int"] += 1
+            elif "," not in arg:
+                res["global context"] += 1
+            else:
+                print(tactic_app)
+                print(arg)
+                res["other"] += 1
+        
+        count = 0
+        for e in res.values():
+            if e == 0:
+                count += 1
+        if count == len(res):
+            res["none"] = 1
+        return res
+    
+    tactic_apps = batch["tactic"]
+    lcs = batch["local_context"]
+    gcs = batch["env"]
+    
+    out = []
+    for i in range(len(tactic_apps)):
+        gc = []
+        lc = []
+        for g in gcs[i]:
+            qualid = g["qualid"]
+            gc.append(qualid)
+        for l in lcs[i]:
+            lc.append(l["ident"])
+        
+        tactic_app = tactic_apps[i]
+        
+        tmp = check(json_path, tactic_app, gc, lc)
+        out.append(tmp)
+    
+    return out
+        
+        
+        
+        
+                 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
