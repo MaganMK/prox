@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn import Sequential as Seq, Linear as Lin, ReLU
 import torch.nn.functional as F
-from helpers import ProofStepData, merge, traverse_postorder, get_node_count_ast
-from .sage import SAGEEmbedder
+from helpers import ProofStepData, merge, traverse_postorder, get_node_count_ast, check_args_batch
+#from .sage import SAGEEmbedder
 from .sg import SGEmbedder
 import json
 
@@ -12,10 +12,10 @@ class GASTProver(nn.Module):
         super().__init__()
         self.opts = opts
         self.embedder = opts.embedder
-        with open(f'{opts.jsonpath}/tactic_groups.json', 'r') as f: 
-            self.tactic_groups = json.load(f)
-        with open(f'{opts.jsonpath}/tactic_groups_reverse.json', 'r') as f: 
-            self.tactic_groups_reverse = json.load(f)
+        with open(f'{opts.jsonpath}/arg_groups.json', 'r') as f: 
+            self.arg_groups = json.load(f)
+        with open(f'{opts.jsonpath}/arg_groups_reverse.json', 'r') as f: 
+            self.arg_groups_reverse = json.load(f)
         with open(f'{opts.jsonpath}/nonterminals.json', 'r') as f: 
             self.nonterminals = json.load(f)
         
@@ -53,10 +53,10 @@ class GASTProver(nn.Module):
         if self.opts.pooling == "set2set":
             self.embedding_dim_c = self.embedding_dim_c*2
         elif self.opts.pooling == "sort":
-            self.embedding_dim_c = self.embedding_dim_c*50
+            self.embedding_dim_c = self.embedding_dim_c*8
         
         if self.opts.predictor == "linear":
-            self.lin = nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
+            self.lin = nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.arg_groups))
             #self.lin.weight.data = self.lin.weight.data.clamp(min=0)
         elif self.opts.predictor == "mlp":
             self.lin = Seq(
@@ -66,12 +66,12 @@ class GASTProver(nn.Module):
                 nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, self.embedding_dim_c*self.opts.embedding_dim),
                 nn.Tanh(),
                 nn.Dropout(self.opts.dropout),
-                nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
+                nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.arg_groups))
             )
             
         self.dropout = nn.Dropout(self.opts.dropout)
         #self.activation = nn.Tanh()
-        self.softmax = nn.Softmax(dim=1)
+        self.probs = nn.Sigmoid()
 
     def forward(self, batch):
         # compute goal embeddings
@@ -98,15 +98,14 @@ class GASTProver(nn.Module):
             embeddings = goal_embeddings
         #print(embeddings)
         
-        true_tactics = [tactic['text'] for tactic in batch['tactic']]
-        true_groups = self.get_groups(true_tactics)
+        true_groups = self.get_groups(batch)
             
         logits = self.lin(embeddings)
         logits = self.dropout(logits)
         #print(logits)
-        loss = self.compute_loss(logits, true_groups, len(true_tactics))
+        loss = self.compute_loss(logits, true_groups, len(goal_asts))
         
-        preds = self.softmax(logits)
+        preds = self.probs(logits)
         #print(preds)
         pred_groups = self.get_groups_preds(preds)
         return pred_groups, true_groups, loss
@@ -131,35 +130,38 @@ class GASTProver(nn.Module):
             j += size
         return torch.stack(res).to(self.opts.device)
 
-    def get_groups(self, tactics):
+    def get_groups(self, batch):
         res = []
-        for tactic in tactics:
-            all_actions = tactic.split(" ")
-            if all_actions[0] in self.tactic_groups_reverse:
-                res.append(self.tactic_groups_reverse[all_actions[0]])
-            else:
-                res.append("goal break up/other")
+        all_groups = check_args_batch("./jsons", batch)
+        for step in all_groups:
+            tmp = []
+            for group, v in step.items():
+                if v >= 1:
+                    tmp.append(group)
+            res.append(tmp)
         return res
     
     def get_groups_preds(self, preds):
         res = []
         for pred in preds:
-            current_pred = list(self.tactic_groups.keys())[torch.argmax(pred)]
-            res.append(current_pred)
+            tmp = []
+            for i, p in enumerate(pred):
+                if p >= 0.5:
+                    current_pred = list(self.arg_groups.keys())[i]
+                    tmp.append(current_pred)
+            res.append(tmp)
         return res
     
     def compute_loss(self, groups_pred, groups_true, current_batchsize):
         targets = self.tactic_space_mapping(groups_true, current_batchsize)
-        criterion = nn.CrossEntropyLoss().to(self.opts.device)
+        criterion = nn.BCEWithLogitsLoss().to(self.opts.device)
         loss = criterion(groups_pred, targets)
         return loss
 
     def tactic_space_mapping(self, actions, current_batchsize):
-        target = torch.empty(current_batchsize, dtype=torch.long).to(self.opts.device)
+        target = torch.zeros([current_batchsize, len(self.arg_groups)], dtype=torch.float).to(self.opts.device)
         for i, action in enumerate(actions):
-            index = list(self.tactic_groups.keys()).index("goal break up/other")
-            for group in self.tactic_groups.keys():
-                if group == action:
-                    index = list(self.tactic_groups.keys()).index(group)
-            target[i] = index
+            for group in action:
+                index = list(self.arg_groups.keys()).index(group)
+                target[i][index] = 1
         return target

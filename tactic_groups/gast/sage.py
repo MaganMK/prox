@@ -100,6 +100,7 @@ class SAGEEmbedder(torch.nn.Module):
             elif self.opts.pooling == "add":
                 x = global_add_pool(x, batch.batch)
             elif self.opts.pooling == "set2set":
+                print(x.size())
                 x = self.pooler(x, batch.batch)
                 x = self.activation(x)
             else:

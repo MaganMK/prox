@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 sys.path.append(os.path.abspath('../'))
 from helpers import ProofStepData, merge, setup_loggers, build_csv
 from ffn.ffn_prover import FFNProver
-#from gast.gast_prover import GASTProver
+from gast.gast_prover import GASTProver
 #from transtactic.trans_prover import TransProver
 
 
@@ -148,7 +148,8 @@ def sanity_check(opts):
         for i, data_batch in enumerate(train):
             counter += 1
             preds, true, loss = model(data_batch)
-            loss_avg_train += loss.item()
+            
+            loss_avg_train += torch.sum(loss)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -202,7 +203,7 @@ if __name__ == '__main__':
     
     # gast
     arg_parser.add_argument("--embedding_dim", type=int, default=256)
-    arg_parser.add_argument("--embedder", type=str, default="sageconv")
+    arg_parser.add_argument("--embedder", type=str, default="sgconv")
     arg_parser.add_argument("--pooling", type=str, default="mean")
     arg_parser.add_argument("--node_pooling", type=str, default="none")
     arg_parser.add_argument("--norm", type=str, default="none")
