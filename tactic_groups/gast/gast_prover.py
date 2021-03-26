@@ -52,6 +52,8 @@ class GASTProver(nn.Module):
             
         if self.opts.pooling == "set2set":
             self.embedding_dim_c = self.embedding_dim_c*2
+        elif self.opts.pooling == "sort":
+            self.embedding_dim_c = self.embedding_dim_c*8
         
         if self.opts.predictor == "linear":
             self.lin = nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
