@@ -17,28 +17,16 @@ class SGEmbedder(torch.nn.Module):
         if self.opts.num_message_layers == 1:
             self.conv = SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops)
         elif self.opts.num_message_layers == 2:
-            self.conv = nn.Sequential(
-                SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops),
-                nn.Dropout(self.opts.dropout),
-                nn.ReLU(),
-                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
-            )
+            self.conv = SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops)
+            self.conv2 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
         elif self.opts.num_message_layers == 4:
-            self.conv = nn.Sequential(
-                SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops),
-                nn.Dropout(self.opts.dropout),
-                nn.ReLU(),
-                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops),
-                nn.Dropout(self.opts.dropout),
-                nn.ReLU(),
-                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops),
-                nn.Dropout(self.opts.dropout),
-                nn.ReLU(),                
-                SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
-            )
-            
+            self.conv = SGConv(len(self.nonterminals), self.opts.embedding_dim, K=self.opts.hops)
+            self.conv2 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
+            self.conv3 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
+            self.conv4 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
+               
+        self.activation = nn.Tanh()
         self.dropout = nn.Dropout(self.opts.dropout)
-        self.activation = nn.ReLU()
 
     def forward(self, asts):
         embeddings = []
@@ -58,10 +46,32 @@ class SGEmbedder(torch.nn.Module):
 
             # node embeddings 
             try:
-                x = self.conv(x, edge_index)
-                x = self.activation(x)
-                x = self.dropout(x)
-            except:
+                if self.opts.num_message_layers == 1:
+                    x = self.conv(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                elif self.opts.num_message_layers == 2:
+                    x = self.conv(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                    x = self.conv2(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                elif self.opts.num_message_layers == 4:
+                    x = self.conv(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                    x = self.conv2(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                    x = self.conv3(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+                    x = self.conv4(x, edge_index)
+                    x = self.activation(x)
+                    x = self.dropout(x)
+            except Exception as e:
+                print(e)
                 all_empty = []
                 for i, ast in enumerate(asts):
                     all_empty.append(torch.zeros(self.opts.embedding_dim).to(self.opts.device))

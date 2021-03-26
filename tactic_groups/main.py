@@ -130,6 +130,7 @@ def sanity_check(opts):
         model = TransProver(opts)
     
     model.to(opts.device)
+    print(model)
 
     if opts.optimizer == "adam":
         optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr, weight_decay=opts.l2)
@@ -200,7 +201,7 @@ if __name__ == '__main__':
     
     # gast
     arg_parser.add_argument("--embedding_dim", type=int, default=256)
-    arg_parser.add_argument("--embedder", type=str, default="sageconv")
+    arg_parser.add_argument("--embedder", type=str, default="sgconv")
     arg_parser.add_argument("--pooling", type=str, default="mean")
     arg_parser.add_argument("--node_pooling", type=str, default="none")
     arg_parser.add_argument("--norm", type=str, default="none")
