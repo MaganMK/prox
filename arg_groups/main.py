@@ -92,9 +92,9 @@ def train(opts):
             loss_avg_valid += loss.item()
 
             for j in range(len(preds)):
-                if preds[j] == true[j]:
+                if set(preds[j]) == set(true[j]):
                     num_correct_valid += 1
-                pred_freq_valid[preds[j]] = pred_freq_valid.get(preds[j], 0) + 1
+                #pred_freq_valid[preds[j]] = pred_freq_valid.get(preds[j], 0) + 1
                           
             elapsed_time = datetime.now() - start_time
             run_logger.info(f"{i}/{len(valid)} -> {100*(i/len(valid))}% ({elapsed_time})")
