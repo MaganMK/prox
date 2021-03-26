@@ -24,6 +24,9 @@ class SGEmbedder(torch.nn.Module):
             self.conv2 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
             self.conv3 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
             self.conv4 = SGConv(self.opts.embedding_dim, self.opts.embedding_dim, K=self.opts.hops)
+            
+        if self.opts.pooling == "set2set":
+            self.pooler = Set2Set(self.opts.embedding_dim, 3)
                
         self.activation = nn.Tanh()
         self.dropout = nn.Dropout(self.opts.dropout)
@@ -83,6 +86,9 @@ class SGEmbedder(torch.nn.Module):
                 x = global_max_pool(x, batch.batch)
             elif self.opts.pooling == "add":
                 x = global_add_pool(x, batch.batch)
+            elif self.opts.pooling == "set2set":
+                x = self.pooler(x, batch.batch)
+                x = self.activation(x)
             else:
                 return "ERROR NO POOL"
                 
