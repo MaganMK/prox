@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch_geometric.nn as gnn
 from torch_geometric.data import Data, Batch
-from torch_geometric.nn import global_mean_pool, global_max_pool, global_add_pool, Set2Set
+from torch_geometric.nn import global_mean_pool, global_max_pool, global_add_pool, Set2Set, global_sort_pool
 from torch_geometric.nn.pool import TopKPooling
 from torch_geometric.nn import GCNConv, SGConv, TransformerConv, SAGEConv, GATConv
 from torch_geometric.nn.norm import GraphSizeNorm
@@ -99,6 +99,9 @@ class SAGEEmbedder(torch.nn.Module):
                 x = global_max_pool(x, batch.batch)
             elif self.opts.pooling == "add":
                 x = global_add_pool(x, batch.batch)
+            elif self.opts.pooling == "sort":
+                x = global_sort_pool(x, batch.batch, 50)
+                x = self.activation(x)
             elif self.opts.pooling == "set2set":
                 print(x.size())
                 x = self.pooler(x, batch.batch)

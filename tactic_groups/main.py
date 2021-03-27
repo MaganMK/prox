@@ -208,6 +208,7 @@ if __name__ == '__main__':
     arg_parser.add_argument("--predictor", type=str, default="linear")
     arg_parser.add_argument("--num_message_layers", type=int, default=1)
     arg_parser.add_argument("--hops", type=int, default=1)
+    arg_parser.add_argument("--sortk", type=int, default=30)
     
     # transtactic
     arg_parser.add_argument("--sexpression", type=bool, default=False)

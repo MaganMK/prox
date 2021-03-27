@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from helpers import ProofStepData, merge, traverse_postorder, get_node_count_ast
 from .sage import SAGEEmbedder
 from .sg import SGEmbedder
+from .conv_and_dense import ConvAndDense
 import json
 
 class GASTProver(nn.Module):
@@ -53,13 +54,13 @@ class GASTProver(nn.Module):
         if self.opts.pooling == "set2set":
             self.embedding_dim_c = self.embedding_dim_c*2
         elif self.opts.pooling == "sort":
-            self.embedding_dim_c = self.embedding_dim_c*50
+            self.embedding_dim_c = self.embedding_dim_c*self.opts.sortk
         
         if self.opts.predictor == "linear":
-            self.lin = nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
+            self.predictor = nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
             #self.lin.weight.data = self.lin.weight.data.clamp(min=0)
         elif self.opts.predictor == "mlp":
-            self.lin = Seq(
+            self.predictor = Seq(
                 nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, self.embedding_dim_c*self.opts.embedding_dim),
                 nn.Tanh(),
                 nn.Dropout(self.opts.dropout),
@@ -68,6 +69,8 @@ class GASTProver(nn.Module):
                 nn.Dropout(self.opts.dropout),
                 nn.Linear(self.embedding_dim_c*self.opts.embedding_dim, len(self.tactic_groups))
             )
+        elif self.opts.predictor == "conv_and_dense":
+            self.predictor = ConvAndDense(opts)
             
         self.dropout = nn.Dropout(self.opts.dropout)
         #self.activation = nn.Tanh()
@@ -100,10 +103,12 @@ class GASTProver(nn.Module):
         
         true_tactics = [tactic['text'] for tactic in batch['tactic']]
         true_groups = self.get_groups(true_tactics)
-            
-        logits = self.lin(embeddings)
+        
+        
+        logits = self.predictor(embeddings)
         logits = self.dropout(logits)
         #print(logits)
+        
         loss = self.compute_loss(logits, true_groups, len(true_tactics))
         
         preds = self.softmax(logits)
@@ -163,3 +168,36 @@ class GASTProver(nn.Module):
                     index = list(self.tactic_groups.keys()).index(group)
             target[i] = index
         return target
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

@@ -87,7 +87,7 @@ class SGEmbedder(torch.nn.Module):
             elif self.opts.pooling == "add":
                 x = global_add_pool(x, batch.batch)
             elif self.opts.pooling == "sort":
-                x = global_sort_pool(x, batch.batch, 50)
+                x = global_sort_pool(x, batch.batch, self.opts.sortk)
             elif self.opts.pooling == "set2set":
                 x = self.pooler(x, batch.batch)
                 x = self.activation(x)
