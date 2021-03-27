@@ -11,6 +11,7 @@ from ffn.ffn_prover import FFNProver
 from gast.gast_prover import GASTProver
 from gast.gast_prover2 import GASTProver2
 from transtactic.trans_prover import TransProver
+import matplotlib.pyplot as plt
 
 
 def train(opts):
@@ -53,18 +54,21 @@ def train(opts):
     if opts.scheduler == "plateau":
         scheduler = ReduceLROnPlateau(optimizer, patience=opts.lr_reduce_patience, verbose=True)
 
-
+    
     for n in range(opts.epochs):
         run_logger.info(f"epoch: {n}")
         res_logger.info(f"epoch: {n}")
 
         # training
+        counter = 0
+        batch_counter = 0
         loss_avg_train = 0
         num_correct_train = 0
         pred_freq_train = {}
         model.train()
         
         for i, data_batch in enumerate(train):
+            batch_counter += 1
             preds, true, loss = model(data_batch)
             loss_avg_train += loss.item()
             
@@ -77,12 +81,18 @@ def train(opts):
             run_logger.info(f"{i}/{len(train)} -> {100*(i/len(train))}% ({elapsed_time})")
             
             for j in range(len(preds)):
+                counter += 1
                 if preds[j] == true[j]:
                     num_correct_train += 1
                 pred_freq_train[preds[j]] = pred_freq_train.get(preds[j], 0) + 1
+            
+            if int(opts.lm[0]) != -1 and counter >= int(opts.lm[0]):
+                break
                 
-        loss_avg_train /= len(train)
-        acc_train = num_correct_train/121644
+        loss_avg_train /= batch_counter
+        acc_train = num_correct_train/counter
+        
+        
         
         # validation
         run_logger.info("validation...")
@@ -90,21 +100,29 @@ def train(opts):
         loss_avg_valid = 0
         num_correct_valid = 0
         pred_freq_valid = {}
+        batch_counter = 0
+        counter = 0
 
         for i, data_batch in enumerate(valid):
+            batch_counter += 1
             preds, true, loss = model(data_batch)
             loss_avg_valid += loss.item()
 
             for j in range(len(preds)):
+                counter += 1
                 if preds[j] == true[j]:
                     num_correct_valid += 1
                 pred_freq_valid[preds[j]] = pred_freq_valid.get(preds[j], 0) + 1
                           
             elapsed_time = datetime.now() - start_time
             run_logger.info(f"{i}/{len(valid)} -> {100*(i/len(valid))}% ({elapsed_time})")
+            
+            if int(opts.lm[1]) != -1 and counter >= int(opts.lm[1]):
+                break            
+            
         
-        loss_avg_valid /= len(valid)
-        acc_valid = num_correct_valid/68180
+        loss_avg_valid /= batch_counter
+        acc_valid = num_correct_valid/counter
     
         res_logger.info("###################")
         res_logger.info(f"train guesses: {pred_freq_train}")
@@ -115,7 +133,6 @@ def train(opts):
         res_logger.info(f"validation accuracy: {acc_valid}")
         res_logger.info("###################")
         build_csv(opts, loss_avg_train, loss_avg_valid, acc_train, acc_valid)
-        
         
         scheduler.step(loss_avg_valid)
         
@@ -143,6 +160,10 @@ def sanity_check(opts):
         optimizer = torch.optim.Adam(model.parameters(), lr=opts.lr, weight_decay=opts.l2)
     if opts.optimizer == "plateau":
         scheduler = ReduceLROnPlateau(optimizer, patience=opts.lr_reduce_patience, verbose=True)
+    
+    #plt.ion()
+    losses = []
+    epochs = []
     
     for n in range(opts.epochs):
         
@@ -173,6 +194,12 @@ def sanity_check(opts):
                 
         loss_avg_train /= counter
         acc_train = num_correct_train/proof_step_counter
+        losses.append(loss_avg_train)
+        epochs.append(n)
+        
+        plt.plot(epochs, losses)
+        plt.draw()
+        plt.pause(0.001)
         
         print(f"###### epoch: {n} #######")
         print(f"train guesses: {pred_freq_train}")
@@ -193,6 +220,7 @@ if __name__ == '__main__':
     arg_parser.add_argument("--sanity", type=bool, default=False)
     arg_parser.add_argument("--sanity_batches", type=int, default=4)
     arg_parser.add_argument("--prover", type=str, default="gast")
+    arg_parser.add_argument("--lm", nargs="+", default=[-1, -1])
     
     # general/optimization
     arg_parser.add_argument("--num_workers", type=int, default=4)
