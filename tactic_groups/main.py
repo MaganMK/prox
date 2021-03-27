@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath('../'))
 from helpers import ProofStepData, merge, setup_loggers, build_csv
 from ffn.ffn_prover import FFNProver
 from gast.gast_prover import GASTProver
+from gast.gast_prover2 import GASTProver2
 from transtactic.trans_prover import TransProver
 
 
@@ -35,7 +36,10 @@ def train(opts):
     res_logger.info(f"valid size -> {len(valid)}")
 
     if opts.prover == "gast":
-        model = GASTProver(opts)
+        if opts.gast2:
+            model = GASTProver2(opts)
+        else:
+            model = GASTProver(opts)
     elif opts.prover == "ffn":
         model = FFNProver(opts)
     elif opts.prover == "trans":
@@ -123,7 +127,10 @@ def sanity_check(opts):
     valid = DataLoader(ProofStepData(opts, "valid"), opts.batchsize, collate_fn=merge, num_workers = opts.num_workers)
 
     if opts.prover == "gast":
-        model = GASTProver(opts)
+        if opts.gast2:
+            model = GASTProver2(opts)
+        else:
+            model = GASTProver(opts)
     elif opts.prover == "ffn":
         model = FFNProver(opts)
     elif opts.prover == "trans":
@@ -209,6 +216,7 @@ if __name__ == '__main__':
     arg_parser.add_argument("--num_message_layers", type=int, default=1)
     arg_parser.add_argument("--hops", type=int, default=1)
     arg_parser.add_argument("--sortk", type=int, default=30)
+    arg_parser.add_argument("--gast2", type=bool, default=False)
     
     # transtactic
     arg_parser.add_argument("--sexpression", type=bool, default=False)

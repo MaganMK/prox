@@ -27,7 +27,8 @@ class ConvAndDense(nn.Module):
         dense_dim = int((self.opts.sortk - 2) / 2 + 1)
         self.dense_dim = (dense_dim - 5 + 1) * 32
         
-        self.out_params = nn.Linear(self.dense_dim, len(self.tactic_groups))
+        self.dense = nn.Linear(self.dense_dim, self.dense_dim/2)
+        self.out = nn.Linear(self.dense_dim, len(self.tactic_groups))
             
         
         
@@ -41,7 +42,10 @@ class ConvAndDense(nn.Module):
         
         
         to_dense = conv1d_res.view(len(embeddings), -1)
-        out_linear = self.out_params(to_dense)
         
-        return out_linear
+        out_1 = self.dense(to_dense)
+        out_1 = self.activation(out_1)
+        out_2 = self.out(out_1)
+        
+        return out_2
     
