@@ -40,7 +40,7 @@ class ConvAndDense(nn.Module):
         conv1d_res = self.activation(conv1d_res)
         
         
-        to_dense = conv1d_res.view(self.opts.batchsize, -1)
+        to_dense = conv1d_res.view(len(embeddings), -1)
         out_linear = self.out_params(to_dense)
         
         return out_linear
